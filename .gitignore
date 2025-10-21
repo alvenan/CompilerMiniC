@@ -1,0 +1,51 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+
+# Builds/empacotamento
+build/
+dist/
+pip-wheel-metadata/
+*.egg-info/
+.eggs/
+
+# Testes/linters (se usar)
+.pytest_cache/
+.mypy_cache/
+.pyre/
+.coverage
+htmlcov/
+.cache/
+
+# Logs temporários
+*.log
+
+# === IDE/Editor ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === SO ===
+.DS_Store
+Thumbs.db
+
+# === ANTLR (artefatos gerados) ===
+# arquivos gerados que podem ser recriados pelo antlr4
+*.interp
+*.tokens
+*Lexer.py
+*Parser.py
+*Listener.py
+*Visitor.py
+.antlr/
+*.java
+*.class
+*.dot
+*.svg
