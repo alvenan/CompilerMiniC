@@ -1,77 +1,87 @@
-program 
-      : definition { definition } 
+grammar miniC;
 
-definition 
-      : data_definition 
-      | function_definition 
+program
+    : definition+ ;
 
-data_definition 
-      : INT declarator { ‘,’ declarator } ‘;‘  
+definition
+    : data_definition
+    | function_definition ;
 
-declarator 
-      : Identifier 
+data_definition
+    : 'int' declarator (',' declarator)* ';' ;
 
-function_definition 
-      : [ INT ] function_header function_body 
+declarator
+    : IDENTIFIER ;
 
-function_header 
-      : declarator parameter_list 
+function_definition
+    : 'int'? function_header function_body ;
 
-parameter_list 
-      : ‘(‘ [ parameter_declaration ] ‘)‘ 
+function_header
+    : declarator parameter_list ;
 
-parameter_declaration 
-      : INT declarator { ‘,‘ declarator }  
+parameter_list
+    : '(' parameter_declaration? ')' ;
 
-function_body 
-      : ‘{‘ { data_definition } { statement } ‘}‘ 
+parameter_declaration
+    : 'int' declarator (',' declarator)* ;
 
-block 
-      : ‘{‘ {statement} ‘}‘  
+function_body
+    : '{' data_definition* statement* '}' ;
 
-statement 
-      : expression ‘;‘  
-      | IF ‘(‘ expression ‘)‘ statement [ ELSE statement ] 
-      | WHILE ‘(‘ expression ‘)‘ statement 
-      | BREAK ‘;‘ 
-      | CONTINUE ‘;‘ 
-      | RETURN [ expression ] ‘;‘ 
-      | block 
-      | ‘;‘ 
+block
+    : '{' statement* '}' ;
 
-expression 
-       : binary  
+statement
+    : expression ';'
+    | 'if' '(' expression ')' statement ('else' statement)?
+    | 'while' '(' expression ')' statement
+    | 'break' ';'
+    | 'continue' ';'
+    | 'return' expression? ';'
+    | block
+    | ';' ;
 
-binary 
-      : Identifier ‘=‘ binary 
-      | Identifier ‘+=‘ binary 
-      | Identifier ‘-=‘ binary 
-      | Identifier ‘*=‘ binary 
-      | Identifier ‘/=‘ binary 
-      | Identifier ‘%=‘ binary 
-      | binary ‘==‘ binary 
-      | binary ‘!=‘ binary 
-      | binary ‘<‘ binary 
-      | binary ‘<=‘ binary 
-      | binary ‘>=‘ binary 
-      | binary ‘>=‘ binary 
-      | binary ‘+‘ binary 
-      | binary ‘-‘ binary 
-      | binary ‘*‘ binary 
-      | binary ‘/‘ binary 
-      | binary ‘%‘ binary 
-      | unary 
+expression
+    : binary ;
 
-unary 
-      : ‘++‘ Identifier 
-      | ‘--‘ Identifier 
-      | primary 
+binary
+    : IDENTIFIER '=' binary
+    | IDENTIFIER '+=' binary
+    | IDENTIFIER '-=' binary
+    | IDENTIFIER '*=' binary
+    | IDENTIFIER '/=' binary
+    | IDENTIFIER '%=' binary
+    | binary '==' binary
+    | binary '!=' binary
+    | binary '<' binary
+    | binary '<=' binary
+    | binary '>=' binary
+    | binary '+' binary
+    | binary '-' binary
+    | binary '*' binary
+    | binary '/' binary
+    | binary '%' binary
+    | unary ;
 
-primary 
-      : IDENTIFIER 
-      | CONSTANT_INT 
-      | ‘(‘ expression ‘)‘ 
-      | Identifier ‘(‘ [ argument_list ] ‘)‘ 
+unary
+    : '++' IDENTIFIER
+    | '--' IDENTIFIER
+    | primary ;
 
-argument_list 
-      : binary { ‘,‘ binary }
+primary
+    : IDENTIFIER
+    | CONSTANT_INT
+    | '(' expression ')'
+    | IDENTIFIER '(' argument_list? ')' ;
+
+argument_list
+    : binary (',' binary)* ;
+
+IDENTIFIER
+    : [a-zA-Z_][a-zA-Z_0-9]* ;
+
+CONSTANT_INT
+    : [0-9]+ ;
+
+WS
+    : [ \t\r\n]+ -> skip ;
