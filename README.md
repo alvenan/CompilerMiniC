@@ -1,4 +1,17 @@
-# GRAMÁTICA PARA O COMPILADOR miniC
+# Trabalho 04: Análise sintática da Linguagem MiniC
+
+Veja os detalhes no arquivo anexo. (EBNF-miniC.pdf)
+Este trabalho é individual.
+Não esqueça que, o que deve ser entregue, é:
+
+• O arquivo com a gramática;
+
+• O programa Python que instancia os analisadores léxicos e sintáticos, gera e imprime a árvore de análise sintática (parse tree). A entrada do código deve ser via arquivo;
+
+• Coloque os dois arquivos em um único arquivo comprimido no formato ZIP. O nome do arquivo deve ser o nome do aluno. Se não seguir a recomendação deste itemjá perde 1.0 ponto.
+
+# EBNF-miniC.pdf
+**GRAMÁTICA PARA O COMPILADOR miniC**
 
 Este trabalho pode ser feito individual ou em duplas. 
 
@@ -22,80 +35,80 @@ nome do arquivo deve ser o nome do aluno.
 
 A gramática em EBNF está abaixo. 
 
-program 
-      : definition { definition } 
+      program 
+            : definition { definition } 
 
-definition 
-      : data_definition 
-      | function_definition 
+      definition 
+            : data_definition 
+            | function_definition 
 
-data_definition 
-      : INT declarator { ‘,’ declarator } ‘;‘  
+      data_definition 
+            : INT declarator { ‘,’ declarator } ‘;‘  
 
-declarator 
-      : Identifier 
+      declarator 
+            : Identifier 
 
-function_definition 
-      : [ INT ] function_header function_body 
+      function_definition 
+            : [ INT ] function_header function_body 
 
-function_header 
-      : declarator parameter_list 
+      function_header 
+            : declarator parameter_list 
 
-parameter_list 
-      : ‘(‘ [ parameter_declaration ] ‘)‘ 
+      parameter_list 
+            : ‘(‘ [ parameter_declaration ] ‘)‘ 
 
-parameter_declaration 
-      : INT declarator { ‘,‘ declarator }  
+      parameter_declaration 
+            : INT declarator { ‘,‘ declarator }  
 
-function_body 
-      : ‘{‘ { data_definition } { statement } ‘}‘ 
+      function_body 
+            : ‘{‘ { data_definition } { statement } ‘}‘ 
 
-block 
-      : ‘{‘ {statement} ‘}‘  
+      block 
+            : ‘{‘ {statement} ‘}‘  
 
-statement 
-      : expression ‘;‘  
-      | IF ‘(‘ expression ‘)‘ statement [ ELSE statement ] 
-      | WHILE ‘(‘ expression ‘)‘ statement 
-      | BREAK ‘;‘ 
-      | CONTINUE ‘;‘ 
-      | RETURN [ expression ] ‘;‘ 
-      | block 
-      | ‘;‘ 
+      statement
+            : expression ‘;‘
+            | IF ‘(‘ expression ‘)‘ statement [ ELSE statement ]
+            | WHILE ‘(‘ expression ‘)‘ statement
+            | BREAK ‘;‘
+            | CONTINUE ‘;‘
+            | RETURN [ expression ] ‘;‘
+            | block
+            | ‘;‘
 
-expression 
-       : binary  
+      expression 
+            : binary  
 
-binary 
-      : Identifier ‘=‘ binary 
-      | Identifier ‘+=‘ binary 
-      | Identifier ‘-=‘ binary 
-      | Identifier ‘*=‘ binary 
-      | Identifier ‘/=‘ binary 
-      | Identifier ‘%=‘ binary 
-      | binary ‘==‘ binary 
-      | binary ‘!=‘ binary 
-      | binary ‘<‘ binary 
-      | binary ‘<=‘ binary 
-      | binary ‘>=‘ binary 
-      | binary ‘>=‘ binary 
-      | binary ‘+‘ binary 
-      | binary ‘-‘ binary 
-      | binary ‘*‘ binary 
-      | binary ‘/‘ binary 
-      | binary ‘%‘ binary 
-      | unary 
+      binary 
+            : Identifier ‘=‘ binary 
+            | Identifier ‘+=‘ binary 
+            | Identifier ‘-=‘ binary 
+            | Identifier ‘*=‘ binary 
+            | Identifier ‘/=‘ binary 
+            | Identifier ‘%=‘ binary 
+            | binary ‘==‘ binary 
+            | binary ‘!=‘ binary 
+            | binary ‘<‘ binary 
+            | binary ‘<=‘ binary 
+            | binary ‘>=‘ binary 
+            | binary ‘>=‘ binary 
+            | binary ‘+‘ binary 
+            | binary ‘-‘ binary 
+            | binary ‘*‘ binary 
+            | binary ‘/‘ binary 
+            | binary ‘%‘ binary 
+            | unary 
 
-unary 
-      : ‘++‘ Identifier 
-      | ‘--‘ Identifier 
-      | primary 
+      unary 
+            : ‘++‘ Identifier 
+            | ‘--‘ Identifier 
+            | primary 
 
-primary 
-      : IDENTIFIER 
-      | CONSTANT_INT 
-      | ‘(‘ expression ‘)‘ 
-      | Identifier ‘(‘ [ argument_list ] ‘)‘ 
+      primary 
+            : IDENTIFIER 
+            | CONSTANT_INT 
+            | ‘(‘ expression ‘)‘ 
+            | Identifier ‘(‘ [ argument_list ] ‘)‘ 
 
-argument_list 
-      : binary { ‘,‘ binary }
+      argument_list 
+            : binary { ‘,‘ binary }
