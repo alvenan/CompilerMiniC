@@ -40,10 +40,10 @@ Thumbs.db
 # arquivos gerados que podem ser recriados pelo antlr4
 *.interp
 *.tokens
-*Lexer.py
-*Parser.py
-*Listener.py
-*Visitor.py
+miniCVisitor.py
+miniCListener.py
+miniCLexer.py
+miniCParser.py
 .antlr/
 *.java
 *.class
