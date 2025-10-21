@@ -49,3 +49,6 @@ miniCParser.py
 *.class
 *.dot
 *.svg
+
+# === Outputs ===
+*.tac

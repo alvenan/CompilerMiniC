@@ -1,38 +1,27 @@
-# Trabalho 06 — Verificação de Variáveis, Tipos e Funções (MiniC)
+# Trabalho 07 - Representação Intermediária
 
-Este trabalho deve considerar o analisador sintático feito para a linguagem **MiniC**.
+Este trabalho tem a ver com a representação intermediária baseado no "código de três endereços" para a linguagem MiniC.
 
-## O que deve ser feito
+## O que deve ser feito:
 
-1. **Extensão de tipos**
-   - A gramática atual do MiniC só tem o tipo `int`. **Altere a gramática para incluir o tipo `char`.**
-   - Inclua na regra `primary` mais uma opção para **`char`**.
+1. Receber via linha de comando um arquivo com o código de entrada na linguagem MiniC e gerar um outro arquivo com a transformação desse arquivo de entrada no respectivo código intermediário de três endereços.
 
-2. **Analisador semântico**
+2. A solução deve estar integrada com o analisador semântico, ou seja, só gerar a representação intermediária se o código de entrada não possuir nenhum erro léxico, sintático ou semântico.
 
-### Parte 1 (cada questão vale 1 ponto)
-a) Verificação de **variáveis não declaradas**;  
-b) Verificação de **variáveis declaradas mais de uma vez**;  
-c) Verificação do **número de argumentos** de chamadas de função;  
-d) Verificação dos **tipos dos argumentos** (definidos e usados) nas chamadas de função;
+3. Sugestão: utilize o padrão de projeto VISITOR.
 
-### Parte 2 (cada questão vale 2 pontos)
-e) **Compatibilidade de tipos** na atribuição, incluindo operações binárias (`+=`, `*=`, etc.);  
-f) **Operandos** de `+`, `-`, `*`, `/`, `%` devem ser do tipo **int**;  
-g) Comandos **`break`** e **`continue`** **apenas** dentro de laços **`while`**.
+## O que deve ser entregue:
 
-## O que deve ser entregue
-- A **gramática modificada**;
-- O **novo Visitor/Listener** (analisador semântico);
-- O **programa principal**.
+O arquivo com a gramática utilizada, o Visitor, o programa Python principal e pelo menos cinco arquivos de entrada utilizados como caso de testes. Compacte todos os arquivos usando o ZIP. Coloque o seu nome como o nome do arquivo.
 
-> Compacte os arquivos em **ZIP** e nomeie o arquivo **com o seu nome**.
+## OBSERVAÇÕES:
 
-## Observações
-1. **Coloque todos os erros em uma lista** e **imprima a lista** ao final da análise.
-2. **Mostre a linha e a posição** na linha onde ocorreu cada erro.
-3. **Sugestão**: resolva por partes e, depois, faça a integração.
+(1) Considere que a gramática do MiniC inclui também o tipo char;
 
----
+(2) Envie dentro do prazo via Colabweb;
 
-## Estrutura sugerida do projeto (mínima)
+(3) O código intermediário deve estar baseado nos respectivos slides;
+
+(4) Inclua pelo menos um caso de testes que tenha funcionado;
+
+(5) Mas, serão executados vários outros casos-de-testes.
