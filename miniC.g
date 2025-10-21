@@ -8,13 +8,18 @@ definition
     | function_definition ;
 
 data_definition
-    : 'int' declarator (',' declarator)* ';' ;
+    : type_specifier declarator (',' declarator)* ';' ;
+
+type_specifier
+    : 'int'
+    | 'char'
+    ;
 
 declarator
     : IDENTIFIER ;
 
 function_definition
-    : 'int'? function_header function_body ;
+    : type_specifier? function_header function_body ;
 
 function_header
     : declarator parameter_list ;
@@ -23,7 +28,7 @@ parameter_list
     : '(' parameter_declaration? ')' ;
 
 parameter_declaration
-    : 'int' declarator (',' declarator)* ;
+    : type_specifier declarator (',' declarator)* ;
 
 function_body
     : '{' data_definition* statement* '}' ;
@@ -71,6 +76,7 @@ unary
 primary
     : IDENTIFIER
     | CONSTANT_INT
+    | CONSTANT_CHAR
     | '(' expression ')'
     | IDENTIFIER '(' argument_list? ')' ;
 
@@ -82,6 +88,10 @@ IDENTIFIER
 
 CONSTANT_INT
     : [0-9]+ ;
+
+CONSTANT_CHAR
+    : '\'' ( '\\' . | ~['\\] ) '\''
+    ;
 
 WS
     : [ \t\r\n]+ -> skip ;
