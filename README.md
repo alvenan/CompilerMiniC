@@ -1,101 +1,38 @@
-# GRAMÁTICA PARA O COMPILADOR miniC
+# Trabalho 06 — Verificação de Variáveis, Tipos e Funções (MiniC)
 
-Este trabalho pode ser feito individual ou em duplas. 
+Este trabalho deve considerar o analisador sintático feito para a linguagem **MiniC**.
 
-Abaixo está a definição do miniC em EBNF, onde os símbolos terminais que são 
-compostos por caracteres especiais estão entres apóstrofos e as palavras reservadas estão em letras maiúsculas. IDENTIFIER e CONSTANT_INT são símbolos terminais adicionais (são tokens e não eles mesmo) que correspondem aos identificadores e constantes inteiras. 
+## O que deve ser feito
 
-A linguagem possui: o tipo de dado inteiro; funções com um identificador, resultado inteiro e número de parâmetros arbitrários; variáveis globais, e locais dentro de funções; as estruturas de controle if-else e while; além de um grande número de operadores.  
+1. **Extensão de tipos**
+   - A gramática atual do MiniC só tem o tipo `int`. **Altere a gramática para incluir o tipo `char`.**
+   - Inclua na regra `primary` mais uma opção para **`char`**.
 
-Considere que as palavras reservadas são todas minúsculas. 
+2. **Analisador semântico**
 
-Implemente a gramática abaixo em ANTLR 4. Faça os ajustes que você julgar necessário. 
-Inclua as definições das palavras chaves, ou, inclua as strings diretamente na gramática. 
+### Parte 1 (cada questão vale 1 ponto)
+a) Verificação de **variáveis não declaradas**;  
+b) Verificação de **variáveis declaradas mais de uma vez**;  
+c) Verificação do **número de argumentos** de chamadas de função;  
+d) Verificação dos **tipos dos argumentos** (definidos e usados) nas chamadas de função;
 
-O que deve ser entregue: 
+### Parte 2 (cada questão vale 2 pontos)
+e) **Compatibilidade de tipos** na atribuição, incluindo operações binárias (`+=`, `*=`, etc.);  
+f) **Operandos** de `+`, `-`, `*`, `/`, `%` devem ser do tipo **int**;  
+g) Comandos **`break`** e **`continue`** **apenas** dentro de laços **`while`**.
 
-• O arquivo com a gramática; 
-• O programa Python que instancia os analisadores léxicos e sintáticos, gera e imprime a árvore de análise sintática (parse tree). A entrada do código deve ser via arquivo passado como argumento de linha de comando. Dentro do programa Python use o comando “input_stream = FileStream(sys.argv[1]);” 
+## O que deve ser entregue
+- A **gramática modificada**;
+- O **novo Visitor/Listener** (analisador semântico);
+- O **programa principal**.
 
-• Coloque os dois arquivos em um único arquivo comprimido no formato ZIP. O 
-nome do arquivo deve ser o nome do aluno. 
+> Compacte os arquivos em **ZIP** e nomeie o arquivo **com o seu nome**.
 
-A gramática em EBNF está abaixo. 
+## Observações
+1. **Coloque todos os erros em uma lista** e **imprima a lista** ao final da análise.
+2. **Mostre a linha e a posição** na linha onde ocorreu cada erro.
+3. **Sugestão**: resolva por partes e, depois, faça a integração.
 
-program 
-      : definition { definition } 
+---
 
-definition 
-      : data_definition 
-      | function_definition 
-
-data_definition 
-      : INT declarator { ‘,’ declarator } ‘;‘  
-
-declarator 
-      : Identifier 
-
-function_definition 
-      : [ INT ] function_header function_body 
-
-function_header 
-      : declarator parameter_list 
-
-parameter_list 
-      : ‘(‘ [ parameter_declaration ] ‘)‘ 
-
-parameter_declaration 
-      : INT declarator { ‘,‘ declarator }  
-
-function_body 
-      : ‘{‘ { data_definition } { statement } ‘}‘ 
-
-block 
-      : ‘{‘ {statement} ‘}‘  
-
-statement 
-      : expression ‘;‘  
-      | IF ‘(‘ expression ‘)‘ statement [ ELSE statement ] 
-      | WHILE ‘(‘ expression ‘)‘ statement 
-      | BREAK ‘;‘ 
-      | CONTINUE ‘;‘ 
-      | RETURN [ expression ] ‘;‘ 
-      | block 
-      | ‘;‘ 
-
-expression 
-       : binary  
-
-binary 
-      : Identifier ‘=‘ binary 
-      | Identifier ‘+=‘ binary 
-      | Identifier ‘-=‘ binary 
-      | Identifier ‘*=‘ binary 
-      | Identifier ‘/=‘ binary 
-      | Identifier ‘%=‘ binary 
-      | binary ‘==‘ binary 
-      | binary ‘!=‘ binary 
-      | binary ‘<‘ binary 
-      | binary ‘<=‘ binary 
-      | binary ‘>=‘ binary 
-      | binary ‘>=‘ binary 
-      | binary ‘+‘ binary 
-      | binary ‘-‘ binary 
-      | binary ‘*‘ binary 
-      | binary ‘/‘ binary 
-      | binary ‘%‘ binary 
-      | unary 
-
-unary 
-      : ‘++‘ Identifier 
-      | ‘--‘ Identifier 
-      | primary 
-
-primary 
-      : IDENTIFIER 
-      | CONSTANT_INT 
-      | ‘(‘ expression ‘)‘ 
-      | Identifier ‘(‘ [ argument_list ] ‘)‘ 
-
-argument_list 
-      : binary { ‘,‘ binary }
+## Estrutura sugerida do projeto (mínima)
