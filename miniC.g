@@ -50,23 +50,26 @@ expression
     : binary ;
 
 binary
-    : IDENTIFIER '=' binary
+    // maior precedência
+    : binary '*' binary
+    | binary '/' binary
+    | binary '%' binary
+    | binary '+' binary
+    | binary '-' binary
+    | binary '<' binary
+    | binary '<=' binary
+    | binary '>' binary
+    | binary '>=' binary
+    | binary '==' binary
+    | binary '!=' binary
+    | IDENTIFIER '=' binary
     | IDENTIFIER '+=' binary
     | IDENTIFIER '-=' binary
     | IDENTIFIER '*=' binary
     | IDENTIFIER '/=' binary
     | IDENTIFIER '%=' binary
-    | binary '==' binary
-    | binary '!=' binary
-    | binary '<' binary
-    | binary '<=' binary
-    | binary '>=' binary
-    | binary '+' binary
-    | binary '-' binary
-    | binary '*' binary
-    | binary '/' binary
-    | binary '%' binary
-    | unary ;
+    | unary
+    ;
 
 unary
     : '++' IDENTIFIER
