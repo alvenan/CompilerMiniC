@@ -1,27 +1,31 @@
-# Trabalho 07 - Representação Intermediária
+# Trabalho 09 - Otimização (parte 1)
 
-Este trabalho tem a ver com a representação intermediária baseado no "código de três endereços" para a linguagem MiniC.
+Este trabalho trata da integração de otimizadores para o código intermediário baseado no código de três endereços (TAC) da linguagem MiniC.
 
 ## O que deve ser feito:
 
-1. Receber via linha de comando um arquivo com o código de entrada na linguagem MiniC e gerar um outro arquivo com a transformação desse arquivo de entrada no respectivo código intermediário de três endereços.
+1. Ler via linha de comando um arquivo com TAC não otimizado e gerar um arquivo com TAC otimizado.
 
-2. A solução deve estar integrada com o analisador semântico, ou seja, só gerar a representação intermediária se o código de entrada não possuir nenhum erro léxico, sintático ou semântico.
+2. Integrar as três técnicas apresentadas em aula:
 
-3. Sugestão: utilize o padrão de projeto VISITOR.
+    (i) Simplificação de expressões (identidades algébricas simples);
+
+    (ii) Propagação de constantes;
+
+    (iii) Eliminação de subexpressões comuns (CSE).
+
+3. Definir a sequência de execução dos três otimizadores e repeti-la até ponto fixo, isto é, enquanto houver mudanças no TAC.
+
+4. Caso deseje, pode reutilizar os códigos de exemplo dos slides/Colab — faça ajustes mínimos necessários para integração.
+
+5. A solução pode ser autônoma (TAC → TAC) ou acoplada ao seu pipeline MiniC (MiniC → TAC → otimização → TAC).
 
 ## O que deve ser entregue:
 
-O arquivo com a gramática utilizada, o Visitor, o programa Python principal e pelo menos cinco arquivos de entrada utilizados como caso de testes. Compacte todos os arquivos usando o ZIP. Coloque o seu nome como o nome do arquivo.
+* O código Python dos otimizadores e do programa principal que orquestra as passes.
 
-## OBSERVAÇÕES:
+* A gramática (se integrar ao pipeline MiniC), o Visitor semântico e o gerador de TAC (opcional se você optar por trabalhar só TAC→TAC).
 
-(1) Considere que a gramática do MiniC inclui também o tipo char;
+* Pelo menos cinco arquivos de teste (entradas TAC e seus respectivos TACs otimizados), compactados em um ZIP.
 
-(2) Envie dentro do prazo via Colabweb;
-
-(3) O código intermediário deve estar baseado nos respectivos slides;
-
-(4) Inclua pelo menos um caso de testes que tenha funcionado;
-
-(5) Mas, serão executados vários outros casos-de-testes.
+* Nomeie o ZIP com seu nome.
