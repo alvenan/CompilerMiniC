@@ -38,7 +38,7 @@ def propagar_constantes(codigo):
 
         # Se a expressão for apenas um número, armazenamos como constante conhecida
         # Caso contrário, invalidamos possível constante anterior da variável da esquerda
-        if nova_direita.isdigit():
+        if nova_direita.isdigit() or (nova_direita.startswith("-") and nova_direita[1:].isdigit()):
             constantes[esquerda] = nova_direita
         else:
             if esquerda in constantes:
@@ -158,11 +158,140 @@ def eliminar_subexpressoes_comuns_corrigido(codigo):
             otimizado.append(linha)
     return otimizado
 
+def dobrar_constantes(codigo):
+    otimizado = []
+    for linha in codigo:
+        s = linha.strip()
+        if "=" in s:
+            esquerda, direita = s.split("=", 1)
+            esquerda = esquerda.strip()
+            direita = direita.strip()
+            tokens = direita.split()
+
+            if len(tokens) == 3:
+                op1, operador, op2 = tokens
+
+                is_int_op1 = op1.isdigit() or (op1.startswith("-") and op1[1:].isdigit())
+                is_int_op2 = op2.isdigit() or (op2.startswith("-") and op2[1:].isdigit())
+
+                if is_int_op1 and is_int_op2:
+                    a = int(op1); b = int(op2)
+                    val = None
+                    try:
+                        if operador == "+":   val = a + b
+                        elif operador == "-": val = a - b
+                        elif operador == "*": val = a * b
+                        elif operador == "/":
+                            if b != 0: val = int(a / b)
+                        elif operador == "%":
+                            if b != 0: val = a % b
+                    except Exception:
+                        val = None
+
+                    if val is not None:
+                        direita = str(val)
+
+            otimizado.append(f"{esquerda} = {direita}")
+        else:
+            otimizado.append(s)
+    return otimizado
+
+def eliminar_codigo_morto(codigo):
+    usados = set()
+    resultado = []
+
+    def tokens_de_uso(rhs):
+        ops = {"+","-","*","/","%","==","!=","<","<=",">",">=","call",",","arg"}
+        out = []
+        for t in rhs.split():
+            tt = t.rstrip(",")
+            if tt in ops or tt.isdigit() or (tt.startswith("-") and tt[1:].isdigit()) or tt.startswith("L"):
+                continue
+            out.append(tt)
+        return out
+
+    for linha in reversed(codigo):
+        s = linha.strip()
+        if s.startswith(("ret","arg ","goto ","label ")):
+            if s.startswith("ret") and len(s.split()) > 1:
+                for t in tokens_de_uso(s[3:].strip()):
+                    usados.add(t)
+            elif s.startswith("arg "):
+                for t in tokens_de_uso(s[4:].strip()):
+                    usados.add(t)
+            resultado.append(s)
+            continue
+
+        if "=" not in s:
+            if s.startswith("ifz "):
+                cond = s[4:].split("goto",1)[0].strip()
+                for t in tokens_de_uso(cond):
+                    usados.add(t)
+            resultado.append(s)
+            continue
+
+        lhs, rhs = s.split("=",1)
+        lhs = lhs.strip(); rhs = rhs.strip()
+
+        if " call " in (" " + rhs + " "):
+            for t in tokens_de_uso(rhs):
+                usados.add(t)
+            usados.add(lhs)
+            resultado.append(s)
+            continue
+
+        if lhs not in usados:
+            for t in tokens_de_uso(rhs):
+                usados.add(t)
+            continue
+
+        for t in tokens_de_uso(rhs):
+            usados.add(t)
+        resultado.append(s)
+
+    resultado.reverse()
+
+    compactado = []
+    i = 0
+    while i < len(resultado):
+        cur = resultado[i]
+        if cur.startswith("goto ") and i + 1 < len(resultado):
+            alvo = cur.split()[1]
+            j = i + 1
+            while j < len(resultado) and resultado[j].strip() == "":
+                j += 1
+            if j < len(resultado) and resultado[j].strip() == f"label {alvo}":
+                i += 1
+                continue
+        compactado.append(cur)
+        i += 1
+
+    referenciados = set()
+    for s in compactado:
+        st = s.strip()
+        if st.startswith("goto "):
+            referenciados.add(st.split()[1])
+        elif st.startswith("ifz ") and "goto" in st:
+            referenciados.add(st.split("goto",1)[1].strip())
+
+    final = []
+    for s in compactado:
+        st = s.strip()
+        if st.startswith("label "):
+            nome = st.split()[1]
+            if nome not in referenciados:
+                continue
+        final.append(s)
+
+    return final
+
 def TACOptimize(codigo):
     passes = [
         propagar_constantes,
+        dobrar_constantes,
         simplificar_expressoes,
         eliminar_subexpressoes_comuns_corrigido,
+        eliminar_codigo_morto,
     ]
     while True:
         before = "\n".join(codigo)
