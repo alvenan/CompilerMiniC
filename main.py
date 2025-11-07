@@ -26,11 +26,11 @@ else:
 
     out_path = sys.argv[1].rsplit('.', 1)[0] + ".tac"
 
-    lines = list(tacvisitor.code)
-    lines = TACOptimize(lines)
+    tacopt = list(tacvisitor.code)
+    tacopt = TACOptimize().optimize(tacopt)
 
     out_opt = out_path.replace(".tac", "_opt.tac")
-    text = "\n".join(lines)
+    text = "\n".join(tacopt)
     if not text.endswith("\n"):
         text += "\n"
     with open(out_opt, "w") as file:
