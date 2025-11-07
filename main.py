@@ -4,7 +4,7 @@ from miniCLexer import miniCLexer
 from miniCParser import miniCParser
 from Visitor import Visitor
 from TACVisitor import TACVisitor
-from TACOptimize import TACOptimize
+from TACOptimizer import TACOptimizer
 
 input_stream = FileStream(sys.argv[1])
 lexer = miniCLexer(input_stream)
@@ -27,7 +27,7 @@ else:
     out_path = sys.argv[1].rsplit('.', 1)[0] + ".tac"
 
     tacopt = list(tacvisitor.code)
-    tacopt = TACOptimize().optimize(tacopt)
+    tacopt = TACOptimizer().optimize(tacopt)
 
     out_opt = out_path.replace(".tac", "_opt.tac")
     text = "\n".join(tacopt)

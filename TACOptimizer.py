@@ -1,7 +1,7 @@
 from miniCVisitor import miniCVisitor
 from typing import List
 
-class TACOptimize(miniCVisitor):
+class TACOptimizer(miniCVisitor):
     def __init__(self) -> None:
         pass
 # Função que aplica a técnica de propagação de constantes em código de três endereços
