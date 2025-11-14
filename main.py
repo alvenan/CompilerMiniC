@@ -1,10 +1,11 @@
 import sys
+import os
 from antlr4 import *
 from miniCLexer import miniCLexer
 from miniCParser import miniCParser
 from Visitor import Visitor
 from TACVisitor import TACVisitor
-from TACOptimize import TACOptimize
+from TACOptimizer import TACOptimize
 
 input_stream = FileStream(sys.argv[1])
 lexer = miniCLexer(input_stream)
@@ -24,12 +25,23 @@ else:
     tacvisitor = TACVisitor()
     tacvisitor.visit(tree)
 
-    out_path = sys.argv[1].rsplit('.', 1)[0] + ".tac"
+    resultados_dir = "results"
+    os.makedirs(resultados_dir, exist_ok=True)
 
-    tacopt = list(tacvisitor.code)
-    tacopt = TACOptimize().optimize(tacopt)
+    base_name = os.path.basename(sys.argv[1]).rsplit('.', 1)[0]
+    out_path = os.path.join(resultados_dir, base_name + ".tac")
 
-    out_opt = out_path.replace(".tac", "_opt.tac")
+    tac = list(tacvisitor.code)
+    text_orig = "\n".join(tac)
+    if not text_orig.endswith("\n"):
+        text_orig += "\n"
+    with open(out_path, "w") as file:
+        file.write(text_orig)
+    print("Arquivo " + out_path + " gerado")
+
+    tacopt = TACOptimize().optimize(list(tac))
+
+    out_opt = os.path.join(resultados_dir, base_name + "_opt.tac")
     text = "\n".join(tacopt)
     if not text.endswith("\n"):
         text += "\n"

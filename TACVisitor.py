@@ -59,7 +59,7 @@ class TACVisitor(miniCVisitor):
         k = ctx.getChild(0).getText()
         if k == ';':
             return None
-        if k == '{':
+        if ctx.block():
             for s in ctx.block().statement():
                 s.accept(self)
             return None

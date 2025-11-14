@@ -1,3 +1,62 @@
+"""
+Aqui eu explico, de forma direta e com exemplos, como implementei as duas 
+novas otimizações: dobrando constantes e eliminação de código morto.
+
+Escrevo em primeira pessoa, da forma como eu apresentaria no meu trabalho.
+
+1) Dobrando constantes
+
+Nesta etapa eu identifico expressões em que todos os valores são constantes
+e substituo a expressão pela avaliação direta. A ideia é simples: se o
+compilador já sabe o resultado, não faz sentido deixar a operação para o
+tempo de execução.
+
+Exemplos:
+    t1 = 2 + 3  ->  t1 = 5
+    t2 = 10 * 4 ->  t2 = 40
+    t3 = 8 < 20 ->  t3 = 1
+
+Isso reduz instruções desnecessárias e deixa o TAC mais limpo para as
+otimizações seguintes: propagação de constantes, eliminação de subexpressões
+comuns e eliminação de código morto.
+
+2) Eliminação de código morto
+
+Depois das demais otimizações, eu faço uma varredura de baixo para cima no
+TAC. Durante essa varredura eu mantenho um conjunto de variáveis “vivas”,
+ou seja, valores que ainda influenciam no resultado final do programa.
+
+Sempre que encontro uma atribuição do tipo:
+    t5 = ...
+eu verifico se esse temporário t5 é realmente usado depois.  
+Se não for, removo a linha.
+
+Exemplo:
+    t1 = a + b     (e t1 nunca é usado depois)
+    -> removo essa instrução
+
+Se for usado, eu mantenho a linha e adiciono as variáveis do lado direito
+ao conjunto de vivas.
+
+Exemplo:
+    t3 = x + y      (t3 será usado mais adiante)
+    -> mantenho  
+    -> adiciono x e y como variáveis vivas
+
+Para variáveis que não são temporárias (como a, b, g1, g2), eu mantenho
+sempre, garantindo preservação de estado e semântica.
+
+Remoção de rótulos:
+Depois de eliminar instruções mortas, analiso todos os "goto Lx" e
+"ifz ... goto Lx" para saber quais rótulos realmente são usados.  
+Rótulos nunca referenciados são removidos.
+
+Exemplo:
+    label L7        (mas ninguém faz goto L7)
+    -> removo
+
+Assim, atendo ao requisito do T10: elimino
+"""
 from miniCVisitor import miniCVisitor
 from typing import List
 
@@ -215,12 +274,10 @@ class TACOptimize(miniCVisitor):
             else:
                 otimizado.append(s)
         return otimizado
-
+  
     def eliminar_codigo_morto(self, codigo):
-        usados = set()
-        resultado = []
 
-        def tokens_de_uso(rhs):
+        def tokens_de_uso(rhs: str):
             ops = {"+","-","*","/","%","==","!=","<","<=",">",">=","call",",","arg"}
             out = []
             for t in rhs.split():
@@ -230,53 +287,92 @@ class TACOptimize(miniCVisitor):
                 out.append(tt)
             return out
 
-        for linha in reversed(codigo):
-            s = linha.strip()
-            if s.startswith(("ret","arg ","goto ","label ")):
-                if s.startswith("ret") and len(s.split()) > 1:
-                    for t in tokens_de_uso(s[3:].strip()):
-                        usados.add(t)
-                elif s.startswith("arg "):
-                    for t in tokens_de_uso(s[4:].strip()):
-                        usados.add(t)
-                resultado.append(s)
+        usados = set()
+        for linha in codigo:
+            st = linha.strip()
+            if not st:
                 continue
+            if st.startswith("ret"):
+                partes = st.split(None, 1)
+                if len(partes) == 2:
+                    usados.update(tokens_de_uso(partes[1]))
+            elif st.startswith("arg "):
+                usados.update(tokens_de_uso(st[3:]))
+            elif st.startswith("ifz ") and "goto" in st:
+                cond = st.split("goto", 1)[0][4:]
+                usados.update(tokens_de_uso(cond))
+            else:
+                if " call " in (" " + st + " ") and "=" in st:
+                    lhs, rhs = st.split("=", 1)
+                    usados.update(tokens_de_uso(rhs))
+                    usados.add(lhs.strip())
 
-            if "=" not in s:
-                if s.startswith("ifz "):
-                    cond = s[4:].split("goto",1)[0].strip()
-                    for t in tokens_de_uso(cond):
-                        usados.add(t)
-                resultado.append(s)
+        n = len(codigo)
+        viva = [False] * n
+        changed = True
+        while changed:
+            changed = False
+            for i, linha in enumerate(codigo):
+                st = linha.strip()
+                if not st:
+                    continue
+                if st.startswith(("func ", "endfunc", "label ", "goto ", "ifz ", "ret", "arg ")):
+                    continue
+                if "=" in st:
+                    lhs, rhs = st.split("=", 1)
+                    lhs = lhs.strip()
+                    rhs = rhs.strip()
+                    rhs_tokens = [t.rstrip(",") for t in rhs.split()]
+
+                    if " call " in (" " + rhs + " "):
+                        if not viva[i]:
+                            viva[i] = True
+                            changed = True
+                        for t in tokens_de_uso(rhs):
+                            if t not in usados:
+                                usados.add(t); changed = True
+                        if lhs not in usados:
+                            usados.add(lhs); changed = True
+                        continue
+
+                    if lhs in usados or lhs in rhs_tokens:
+                        if not viva[i]:
+                            viva[i] = True
+                            changed = True
+                        for t in tokens_de_uso(rhs):
+                            if t not in usados:
+                                usados.add(t); changed = True
+                    else:
+                        for t in tokens_de_uso(rhs):
+                            if t not in usados:
+                                usados.add(t); changed = True
+
+        resultado = []
+        for i, linha in enumerate(codigo):
+            st = linha.rstrip("\n")
+            s = st.strip()
+            if not s:
+                resultado.append(st)
                 continue
-
-            lhs, rhs = s.split("=",1)
-            lhs = lhs.strip(); rhs = rhs.strip()
-
-            if " call " in (" " + rhs + " "):
-                for t in tokens_de_uso(rhs):
-                    usados.add(t)
-                usados.add(lhs)
-                resultado.append(s)
+            if s.startswith(("func ", "endfunc", "label ", "goto ", "ifz ", "ret", "arg ")):
+                resultado.append(st)
                 continue
-
-            if lhs not in usados:
-                for t in tokens_de_uso(rhs):
-                    usados.add(t)
-                continue
-
-            for t in tokens_de_uso(rhs):
-                usados.add(t)
-            resultado.append(s)
-
-        resultado.reverse()
+            if "=" in s:
+                lhs = s.split("=", 1)[0].strip()
+                if viva[i]:
+                    resultado.append(st)
+                else:
+                    continue
+            else:
+                resultado.append(st)
 
         compactado = []
         i = 0
         while i < len(resultado):
             cur = resultado[i]
-            if cur.startswith("goto ") and i + 1 < len(resultado):
-                alvo = cur.split()[1]
+            st = cur.strip()
+            if st.startswith("goto ") and i + 1 < len(resultado):
+                alvo = st.split()[1]
                 j = i + 1
                 while j < len(resultado) and resultado[j].strip() == "":
                     j += 1
