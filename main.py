@@ -1,13 +1,18 @@
 import sys
 import os
 from antlr4 import *
+from antlr4.InputStream import InputStream
 from miniCLexer import miniCLexer
+"""Author: Alison Venâncio"""
+
 from miniCParser import miniCParser
 from Visitor import Visitor
 from TACVisitor import TACVisitor
-from TACOptimizer import TACOptimize
+from TACOptimizer import TACOptimizer
+from EduMIPSGenerator import EduMIPSGenerator
 
-input_stream = FileStream(sys.argv[1])
+src_text = open(sys.argv[1], 'r', encoding='utf-8').read()
+input_stream = InputStream(src_text)
 lexer = miniCLexer(input_stream)
 token_stream = CommonTokenStream(lexer)
 parser = miniCParser(token_stream)
@@ -39,7 +44,7 @@ else:
         file.write(text_orig)
     print("Arquivo " + out_path + " gerado")
 
-    tacopt = TACOptimize().optimize(list(tac))
+    tacopt = TACOptimizer().optimize(list(tac))
 
     out_opt = os.path.join(resultados_dir, base_name + "_opt.tac")
     text = "\n".join(tacopt)
@@ -48,3 +53,17 @@ else:
     with open(out_opt, "w") as file:
         file.write(text)
     print("Arquivo " + out_opt + " gerado")
+    try:
+        gen = EduMIPSGenerator()
+        asm_lines = gen.generate(tacopt)
+        out_s = os.path.join(resultados_dir, base_name + ".s")
+        asm_text = "\n".join(asm_lines)
+        if not asm_text.endswith("\n"):
+            asm_text += "\n"
+        with open(out_s, "w") as fasm:
+            fasm.write(asm_text)
+        print("Arquivo " + out_s + " gerado")
+    except SystemExit as se:
+        print("Aviso: gerador EduMIPS finalizou (possível falta de registradores):", se)
+    except Exception as e:
+        print("Aviso: falha ao gerar assembly EduMIPS:", e)

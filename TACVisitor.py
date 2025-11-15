@@ -1,3 +1,5 @@
+"""Author: Alison Venâncio"""
+
 from miniCVisitor import miniCVisitor
 from miniCParser import miniCParser
 
@@ -8,6 +10,7 @@ class TACVisitor(miniCVisitor):
         self._l = 0
         self._break = []
         self._cont = []
+        self.func_rets = {}
 
     def _new_t(self):
         self._t += 1
@@ -28,7 +31,11 @@ class TACVisitor(miniCVisitor):
     def visitData_definition(self, ctx):
         typ = ctx.type_specifier().getText()
         for d in ctx.declarator():
-            self.code.append(f"var {typ} {d.getText()}")
+            name = d.IDENTIFIER().getText()
+            self.code.append(f"var {typ} {name}")
+            if d.getChildCount() >= 3 and d.getChild(1).getText() == '=':
+                init = d.getChild(2).getText()
+                self.code.append(f"{name} = {init}")
         return None
 
     def visitFunction_definition(self, ctx):
@@ -36,13 +43,21 @@ class TACVisitor(miniCVisitor):
         if ctx.type_specifier():
             rett = ctx.type_specifier().getText()
         fname = ctx.function_header().declarator().getText()
+        self.func_rets[fname] = rett
         self.code.append(f"func {rett} {fname}")
 
-        pdecl = ctx.function_header().parameter_list().parameter_declaration()
-        if pdecl:
-            ptyp = pdecl.type_specifier().getText()
-            for d in pdecl.declarator():
-                self.code.append(f"param {ptyp} {d.getText()}")
+        plist = ctx.function_header().parameter_list()
+        if plist and plist.parameter():
+            for p in plist.parameter():
+                self.code.append(f"param {p.type_specifier().getText()} {p.declarator().getText()}")
+        else:
+            pdecl = None
+            if plist and hasattr(plist, 'parameter_declaration'):
+                pdecl = plist.parameter_declaration()
+            if pdecl:
+                ptyp = pdecl.type_specifier().getText()
+                for d in pdecl.declarator():
+                    self.code.append(f"param {ptyp} {d.getText()}")
 
         ctx.function_body().accept(self)
         self.code.append(f"endfunc {fname}")
@@ -137,10 +152,25 @@ class TACVisitor(miniCVisitor):
             return ctx.expression().accept(self)
         if ctx.IDENTIFIER() and ctx.getChildCount() >= 3 and ctx.getChild(1).getText() == '(':
             fname = ctx.IDENTIFIER().getText()
-            args = ctx.argument_list().binary() if ctx.argument_list() else []
+            if fname == 'printf' and ctx.argument_list() and ctx.argument_list().CONSTANT_STRING():
+                args = ctx.argument_list().binary() if ctx.argument_list() else []
+                if args:
+                    val = args[0].accept(self)
+                    self.code.append(f"print {val}")
+                    return None
+            args = []
+            if ctx.argument_list():
+                if hasattr(ctx.argument_list(), 'binary'):
+                    args = ctx.argument_list().binary() or []
             vals = [a.accept(self) for a in args]
             for v in vals:
                 self.code.append(f"arg {v}")
+
+            rett = self.func_rets.get(fname, "int")
+            if rett == "void":
+                self.code.append(f"call {fname}, {len(vals)}")
+                return None
+
             res = self._new_t()
             self.code.append(f"{res} = call {fname}, {len(vals)}")
             return res

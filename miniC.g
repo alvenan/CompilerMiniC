@@ -1,3 +1,4 @@
+// Author: Alison Venâncio
 grammar miniC;
 
 program
@@ -13,10 +14,11 @@ data_definition
 type_specifier
     : 'int'
     | 'char'
+    | 'void'
     ;
 
 declarator
-    : IDENTIFIER ;
+    : IDENTIFIER ('=' expression)? ;
 
 function_definition
     : type_specifier? function_header function_body ;
@@ -25,7 +27,10 @@ function_header
     : declarator parameter_list ;
 
 parameter_list
-    : '(' parameter_declaration? ')' ;
+    : '(' ( 'void' | parameter (',' parameter)* | parameter_declaration )? ')' ;
+
+parameter
+    : type_specifier declarator ;
 
 parameter_declaration
     : type_specifier declarator (',' declarator)* ;
@@ -80,11 +85,14 @@ primary
     : IDENTIFIER
     | CONSTANT_INT
     | CONSTANT_CHAR
+    | CONSTANT_STRING
     | '(' expression ')'
     | IDENTIFIER '(' argument_list? ')' ;
 
 argument_list
-    : binary (',' binary)* ;
+    : (CONSTANT_STRING (',' binary (',' binary)*)?)
+    | (binary (',' binary)*)
+    ;
 
 IDENTIFIER
     : [a-zA-Z_][a-zA-Z_0-9]* ;
@@ -94,6 +102,10 @@ CONSTANT_INT
 
 CONSTANT_CHAR
     : '\'' ( '\\' . | ~['\\] ) '\''
+    ;
+
+CONSTANT_STRING
+    : '"' ( '\\' . | ~["\\] )* '"'
     ;
 
 WS

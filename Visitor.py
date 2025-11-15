@@ -1,3 +1,5 @@
+"""Author: Alison Venâncio"""
+
 from miniCVisitor import miniCVisitor
 from miniCParser import miniCParser
 from miniCLexer import miniCLexer
@@ -8,6 +10,8 @@ class Visitor(miniCVisitor):
         self.function_signatures = {}
         self.errors = []
         self.in_loop = 0
+        self.function_signatures['printf'] = {"ret": 'int', "params": ['int']}
+        self.function_signatures['print'] = {"ret": 'int', "params": ['int']}
 
     def _lookup(self, name):
         for s in reversed(self.scopes):
@@ -27,15 +31,27 @@ class Visitor(miniCVisitor):
         if ctx.type_specifier():
             ret = ctx.type_specifier().getText()
         func_name = ctx.function_header().declarator().getText()
-        param_decl = ctx.function_header().parameter_list().parameter_declaration()
+        plist = ctx.function_header().parameter_list()
         param_types = []
-        if param_decl:
-            ptype = param_decl.type_specifier().getText()
-            nparams = len(param_decl.declarator())
-            param_types = [ptype] * nparams
+        if plist and plist.parameter():
+            for p in plist.parameter():
+                param_types.append(p.type_specifier().getText())
+        else:
+            param_decl = None
+            if plist and hasattr(plist, 'parameter_declaration'):
+                param_decl = plist.parameter_declaration()
+            if param_decl:
+                ptype = param_decl.type_specifier().getText()
+                nparams = len(param_decl.declarator())
+                param_types = [ptype] * nparams
         self.function_signatures[func_name] = {"ret": ret, "params": param_types}
         self.scopes.append({})
-        if param_decl:
+        if plist and plist.parameter():
+            for p in plist.parameter():
+                name = p.declarator().IDENTIFIER().getText()
+                tok = p.declarator().IDENTIFIER().getSymbol()
+                self._declare(name, p.type_specifier().getText(), tok)
+        elif param_decl:
             ptype = param_decl.type_specifier().getText()
             for d in param_decl.declarator():
                 name = d.getText()
@@ -48,7 +64,7 @@ class Visitor(miniCVisitor):
     def visitData_definition(self, ctx):
         type_spec = ctx.type_specifier().getText()
         for decl in ctx.declarator():
-            var_name = decl.getText()
+            var_name = decl.IDENTIFIER().getText()
             token = decl.IDENTIFIER().getSymbol()
             self._declare(var_name, type_spec, token)
         return self.visitChildren(ctx)
@@ -114,6 +130,8 @@ class Visitor(miniCVisitor):
                 return 'int'
             if ctx.CONSTANT_CHAR():
                 return 'char'
+            if hasattr(ctx, 'CONSTANT_STRING') and ctx.CONSTANT_STRING():
+                return 'int'
             if ctx.IDENTIFIER() and ctx.getChildCount() == 1:
                 name = ctx.IDENTIFIER().getText()
                 return self._lookup(name) or 'unknown'

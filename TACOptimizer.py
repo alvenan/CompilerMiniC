@@ -60,7 +60,7 @@ Assim, atendo ao requisito do T10: elimino
 from miniCVisitor import miniCVisitor
 from typing import List
 
-class TACOptimize(miniCVisitor):
+class TACOptimizer(miniCVisitor):
     def __init__(self) -> None:
         pass
 # Função que aplica a técnica de propagação de constantes em código de três endereços
@@ -198,40 +198,44 @@ class TACOptimize(miniCVisitor):
         for linha in codigo:
             linha = linha.strip()
             if "=" in linha:
-            # divide só a primeira '=', preservando '==' '!=' '<=' '>='
                 partes = linha.split("=", 1)
                 esquerda = partes[0].strip()
                 direita = partes[1].strip()
                 tokens = direita.split()
-                if len(tokens) == 3:
-                    op1 = tokens[0]
-                    operador = tokens[1]
-                    op2 = tokens[2]
-                    chave = op1 + " " + operador + " " + op2
 
-                # Verifica se a subexpressão ainda é válida
-                    if chave in subexpressoes:
-                        otimizado.append(f"{esquerda} = {subexpressoes[chave]}")
+                # NÃO fazer CSE em chamadas de função
+                if "call" in tokens:
+                    otimizado.append(linha)
+                else:
+                    if len(tokens) == 3:
+                        op1 = tokens[0]
+                        operador = tokens[1]
+                        op2 = tokens[2]
+                        chave = op1 + " " + operador + " " + op2
+
+                        if chave in subexpressoes:
+                            otimizado.append(f"{esquerda} = {subexpressoes[chave]}")
+                        else:
+                            subexpressoes[chave] = esquerda
+                            otimizado.append(linha)
+                            for var in [op1, op2]:
+                                if var not in operandos_usados:
+                                    operandos_usados[var] = set()
+                                operandos_usados[var].add(chave)
                     else:
-                    # Registra a nova subexpressão
-                        subexpressoes[chave] = esquerda
                         otimizado.append(linha)
 
-                    # Armazena os operandos utilizados nas subexpressões
-                        for var in [op1, op2]:
-                            if var not in operandos_usados:
-                                operandos_usados[var] = set()
-                            operandos_usados[var].add(chave)
-                else:
-                    otimizado.append(linha)
-            # IMPORTANTE: sempre que uma variável for atualizada, invalidamos as subexpressões que dependem dela
+                # mantém a invalidação das subexpressões dependentes
                 if esquerda in operandos_usados:
                     for chave_dependente in operandos_usados[esquerda]:
                         if chave_dependente in subexpressoes:
                             del subexpressoes[chave_dependente]
                     del operandos_usados[esquerda]
             else:
+                # >>> ESSA PARTE FALTA NO TEU CÓDIGO
                 otimizado.append(linha)
+                # <<<
+
         return otimizado
 
     def dobrar_constantes(self, codigo):
@@ -301,6 +305,8 @@ class TACOptimize(miniCVisitor):
             elif st.startswith("ifz ") and "goto" in st:
                 cond = st.split("goto", 1)[0][4:]
                 usados.update(tokens_de_uso(cond))
+            elif st.startswith("print "):
+                usados.update(tokens_de_uso(st[5:]))
             else:
                 if " call " in (" " + st + " ") and "=" in st:
                     lhs, rhs = st.split("=", 1)
@@ -355,6 +361,9 @@ class TACOptimize(miniCVisitor):
                 resultado.append(st)
                 continue
             if s.startswith(("func ", "endfunc", "label ", "goto ", "ifz ", "ret", "arg ")):
+                resultado.append(st)
+                continue
+            if " call " in (" " + st + " "):
                 resultado.append(st)
                 continue
             if "=" in s:
