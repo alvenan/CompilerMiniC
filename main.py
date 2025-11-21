@@ -3,6 +3,7 @@ import os
 from antlr4 import *
 from antlr4.InputStream import InputStream
 from miniCLexer import miniCLexer
+
 """Author: Alison Venâncio"""
 
 from miniCParser import miniCParser

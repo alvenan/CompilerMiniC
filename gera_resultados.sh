@@ -2,7 +2,19 @@
 
 set -e
 
-mkdir -p results
+if [ -d results ]; then
+    rm -rf results/*
+else
+    mkdir results
+fi
+
+ts=$(date +%m-%d-%H-%M-%S)
+outfile="results/code_${ts}.txt"
+resultfile="results/results_${ts}.txt"
+
+header="Gerado em: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "$header" > "$outfile"
+echo "$header" > "$resultfile"
 
 testes_pattern="testes/*.mc"
 
@@ -18,7 +30,9 @@ if [ "$#" -gt 0 ]; then
     done
 fi
 
+# BLOCO 1: só informações de código / diffs → code_...
 {
+    echo
     echo "=== Gerando parser ==="
     antlr4 -Dlanguage=Python3 -visitor miniC.g
 
@@ -70,7 +84,11 @@ fi
     git diff EduMIPSGenerator.py ../eduMips/generate_mips.py || true
     echo
     echo
+} >> "$outfile" 2>&1
 
+# BLOCO 2: só execução de testes → results_...
+{
+    echo
     echo "=== Rodando testes em ${testes_pattern} ==="
 
     for mc in $testes_pattern; do
@@ -105,4 +123,4 @@ fi
             echo
         fi
     done
-} > results/resultados.txt 2>&1
+} >> "$resultfile" 2>&1

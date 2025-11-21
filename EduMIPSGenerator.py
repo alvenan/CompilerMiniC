@@ -1,67 +1,22 @@
 import sys
 
-
 """Author: Alison Venâncio"""
 
-
 class EduMIPSGenerator:
-    """Transforma código de três endereços em Assembly EduMIPS64."""
-
     def __init__(self):
         self.max_args = 0
+        self.param_vars = set()
 
     # ---------- constantes ----------
 
-    REGS = [
-        "$t0",
-        "$t1",
-        "$t2",
-        "$t3",
-        "$t4",
-        "$t5",
-        "$t6",
-        "$t7",
-        "$t8",
-        "$t9",
-        "$s0",
-        "$s1",
-        "$s2",
-        "$s3",
-        "$s4",
-        "$s5",
-        "$s6",
-        "$s7",
-        "$s8",
-        "$s9",
-    ]  # $t9/$t8 usados p/ literais; $s* extras p/ temporários
-
-    OPERADORES = (
-        ">=",
-        "<=",
-        "==",
-        "!=",
-        ">",
-        "<",
-        "+",
-        "-",
-        "*",
-        "=",
-    )
-    KEYWORDS = (
-        "if",
-        "goto",
-        "func",
-        "end",
-        "return",
-        "param",
-        "call",
-        "print",
-        "var",
-        "int",
-        "char",
-        "label",
-        "endfunc",
-    )
+    REGS = ["$t0","$t1","$t2","$t3","$t4",
+            "$t5","$t6","$t7","$t8","$t9",
+            "$s0","$s1","$s2","$s3","$s4",
+            "$s5","$s6","$s7","$s8","$s9"]
+    OPERADORES = (">=","<=","==","!=",">","<","+","-","*","=")
+    KEYWORDS = ("if","goto","func","end",
+                "return","param","call","print",
+                "var","int","char","label","endfunc")
 
     def generate(self, tac_lines):
             cod_inter = [lin.rstrip("\n") for lin in tac_lines]
@@ -71,15 +26,22 @@ class EduMIPSGenerator:
             asm = self.traduzir(cod_inter, regs, spilled)
 
             saida = [".data"]
+            saida.append("__ra_top:   .word 0")
+            saida.append("__ra_stack: .space {}".format(8 * 64))
+
             for v in variaveis:
                 saida.append(f"{v}:   .word 0")
 
+            for p in sorted(getattr(self, "param_vars", [])):
+                saida.append(f"__stack_{p}: .space {8 * 64}")
+
             if self.max_args > 0:
-                saida.append(f"args_area: .space {8 * self.max_args}")
+                for i in range(self.max_args):
+                    saida.append(f"__arg{i}:   .word 0")
+
 
             saida.append("")
             saida.append(".text")
-            saida.append(".globl main")
             saida.extend(asm)
             saida.append("SYSCALL 0")
             return saida
@@ -133,11 +95,12 @@ class EduMIPSGenerator:
                         varList.append(name)
                 continue
 
-            # param int a (opcional, se quiser em memória)
+            # param int a  -> só registra o nome do parâmetro
             if parte.startswith("param "):
-                parts = parte.split()
-                if len(parts) >= 3:
-                    name = parts[2]
+                toks = parte.split()
+                if len(toks) >= 3:
+                    name = toks[2]
+                    self.param_vars.add(name)
                     if name not in vistos:
                         vistos.add(name)
                         varList.append(name)
@@ -202,6 +165,14 @@ class EduMIPSGenerator:
             val = self.valor_char(tok)
             out.append(f"DADDIU  {dest}, $zero, {val}")
             return dest
+        if hasattr(self, "param_vars") and tok in self.param_vars:
+            out.append("LD      $t9, __ra_top($zero)")
+            out.append("DSLL    $t8, $t9, 3")
+            out.append(f"DADDIU  $gp, $zero, __stack_{tok}")
+            out.append("DADDU   $t8, $t8, $gp")
+            out.append(f"LD      {dest}, 0($t8)")
+            return dest
+        
         r = regs.get(tok)
         if r:
             out.append(f"LD      {r}, {tok}($zero)")
@@ -217,6 +188,7 @@ class EduMIPSGenerator:
         params = []
         func_atual = None
         param_index = 0
+        self.param_vars = set()
         for lin in cod_inter:
             original = lin.rstrip()
             parte = original.partition(";")[0].strip()
@@ -225,10 +197,8 @@ class EduMIPSGenerator:
 
             out.append(f"; {original}")  # comentário
 
-            # --- cabeçalho de função ---
             if parte.startswith("func "):
                 parts = parte.split()
-                # Ex.: "func void process_data" ou "func int main"
                 if len(parts) >= 3:
                     nome = parts[2].split(",", 1)[0]
                 elif len(parts) >= 2:
@@ -249,23 +219,21 @@ class EduMIPSGenerator:
                 out.append(parte)
                 continue
 
-            # --- var (declaração) ---
             if parte.startswith("var "):
                 continue
 
-            # --- label (rótulo simples gerado em TAC) ---
             if parte.startswith("label "):
-                out.append(parte.split(None,1)[1])
+                name = parte.split(None, 1)[1]
+                out.append(name + ":")
                 continue
 
             # --- goto ---
             if parte.startswith("goto "):
-                out.append(f"B       {parte.split()[1]}")
+                out.append(f"J       {parte.split()[1]}")
                 continue
 
             # --- ifz VAR goto L ---
             if parte.startswith("ifz ") and "goto" in parte:
-                # formato: ifz <cond> goto L
                 cond = parte.split("goto",1)[0][4:].strip()
                 label = parte.split("goto",1)[1].strip()
                 rv = regs.get(cond)
@@ -276,24 +244,25 @@ class EduMIPSGenerator:
                 out.append(f"BEQ     {rv}, $zero, {label}")
                 continue
 
-            # --- param: copiar da área de args para variável formal ---
             if parte.startswith("param "):
-                # formato: "param int a" ou "param char c"
                 toks = parte.split()
                 if len(toks) >= 3:
                     var_name = toks[2]
-                    offset = 8 * param_index
-                    out.append(f"LD      $t0, args_area+{offset}($zero)")
-                    out.append(f"SD      $t0, {var_name}($zero)")
+                    self.param_vars.add(var_name)
+
+                    out.append(f"LD      $t0, __arg{param_index}($zero)")
+                    out.append("LD      $t9, __ra_top($zero)")
+                    out.append("DSLL    $t8, $t9, 3")
+                    out.append(f"DADDIU  $gp, $zero, __stack_{var_name}")
+                    out.append("DADDU   $t8, $t8, $gp")
+                    out.append("SD      $t0, 0($t8)")
                     param_index += 1
                 continue
 
-            # --- arg: argumentos para chamadas ---
             if parte.startswith("arg "):
                 params.append(parte.split(" ", 1)[1].strip())
                 continue
 
-            # --- print ---
             if parte.startswith("print "):
                 op = parte.split(" ", 1)[1].strip()
                 reg = self.load_operand(op, regs, out, "$t0", spilled)
@@ -305,7 +274,6 @@ class EduMIPSGenerator:
                 out.append("SYSCALL 11")
                 continue
 
-            # --- return ---
             if parte.startswith("return") or parte.startswith("ret"):
                 toks = parte.split()
                 if len(toks) > 1:
@@ -322,7 +290,6 @@ class EduMIPSGenerator:
                 esq_ = toks[0].strip()
                 dir_ = toks[1].strip()
 
-                # chamada retornando valor
                 if dir_.startswith("call "):
                     resto = dir_.split(" ", 1)[1]
                     try:
@@ -336,9 +303,22 @@ class EduMIPSGenerator:
                         params = params[:-argc]
                     for idx, arg in enumerate(args):
                         reg_arg = self.load_operand(arg, regs, out, "$t0", spilled)
-                        offset = 8 * idx
-                        out.append(f"SD      {reg_arg}, args_area+{offset}($zero)")
+                        out.append(f"SD      {reg_arg}, __arg{idx}($zero)")
+                    out.append("LD      $t9, __ra_top($zero)")
+                    out.append("DSLL    $t8, $t9, 3")
+                    out.append("DADDIU  $gp, $zero, __ra_stack")
+                    out.append("DADDU   $t8, $t8, $gp")
+                    out.append("SD      $ra, 0($t8)")
+                    out.append("DADDIU  $t9, $t9, 1")
+                    out.append("SD      $t9, __ra_top($zero)")
                     out.append(f"JAL     {nome}")
+                    out.append("LD      $t9, __ra_top($zero)")
+                    out.append("DADDIU  $t9, $t9, -1")
+                    out.append("SD      $t9, __ra_top($zero)")
+                    out.append("DSLL    $t8, $t9, 3")
+                    out.append("DADDIU  $gp, $zero, __ra_stack")
+                    out.append("DADDU   $t8, $t8, $gp")
+                    out.append("LD      $ra, 0($t8)")
                     rd = regs.get(esq_)
                     if rd:
                         out.append(f"SD      $v0, {esq_}($zero)")
@@ -348,7 +328,6 @@ class EduMIPSGenerator:
                 if rd is None:
                     rd = "$t0"
 
-                # 1) constante direta
                 if self.e_num(dir_):
                     out.append(f"DADDIU  {rd}, $zero, {dir_}")
                     out.append(f"SD      {rd}, {esq_}($zero)")
@@ -360,7 +339,6 @@ class EduMIPSGenerator:
                     out.append(f"SD      {rd}, {esq_}($zero)")
                     continue
 
-                # 2) operações aritméticas/comparações
                 operador = None
                 for op in ("<=", ">=", "==", "!=", ">", "<", "+", "-", "*", "/", "%"):
                     if f" {op} " in dir_ or op in dir_:
@@ -384,7 +362,6 @@ class EduMIPSGenerator:
                         out.append(f"SD      {rd}, {esq_}($zero)")
                         continue
 
-                    # caso geral binário (<=, >=, ==, !=, >, <, +, -, *)
                     x, y = [t.strip() for t in dir_.split(operador, 1)]
                     rx = self.load_operand(x, regs, out, "$t0", spilled)
                     ry = self.load_operand(y, regs, out, "$t1", spilled)
@@ -419,13 +396,9 @@ class EduMIPSGenerator:
                         out.append(f"DSUBU   $t8, {rx}, {ry}")
                         out.append(f"SLTIU   {rd}, $t8, 1")
                         out.append(f"XORI    {rd}, {rd}, 1")
-                    # aqui você ainda não mexe em / e %
-                    # (vamos colocar já no passo 2)
-                    # grava SEMPRE o resultado em memória
                     out.append(f"SD      {rd}, {esq_}($zero)")
                     continue
 
-                # 4) cópia simples
                 if self.e_var(dir_):
                     rv = regs.get(dir_)
                     if rv:
@@ -437,7 +410,6 @@ class EduMIPSGenerator:
                 out.append(f"SD      {rv}, {esq_}($zero)")
                 continue
 
-            # --- chamada void ---
             if parte.startswith("call "):
                 resto = parte.split(" ", 1)[1]
                 try:
@@ -451,9 +423,23 @@ class EduMIPSGenerator:
                     params = params[:-argc]
                 for idx, arg in enumerate(args):
                     reg_arg = self.load_operand(arg, regs, out, "$t0", spilled)
-                    offset = 8 * idx
-                    out.append(f"SD      {reg_arg}, args_area+{offset}($zero)")
+                    out.append(f"SD      {reg_arg}, __arg{idx}($zero)")
+
+                out.append("LD      $t9, __ra_top($zero)")
+                out.append("DSLL    $t8, $t9, 3")
+                out.append("DADDIU  $gp, $zero, __ra_stack")
+                out.append("DADDU   $t8, $t8, $gp")
+                out.append("SD      $ra, 0($t8)")
+                out.append("DADDIU  $t9, $t9, 1")
+                out.append("SD      $t9, __ra_top($zero)")
                 out.append(f"JAL     {nome}")
+                out.append("LD      $t9, __ra_top($zero)")
+                out.append("DADDIU  $t9, $t9, -1")
+                out.append("SD      $t9, __ra_top($zero)")
+                out.append("DSLL    $t8, $t9, 3")
+                out.append("DADDIU  $gp, $zero, __ra_stack")
+                out.append("DADDU   $t8, $t8, $gp")
+                out.append("LD      $ra, 0($t8)")
                 continue
 
             if parte.startswith("endfunc") or parte.startswith("end func"):

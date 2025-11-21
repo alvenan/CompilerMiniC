@@ -57,6 +57,9 @@ Exemplo:
 
 Assim, atendo ao requisito do T10: elimino
 """
+
+"""Author: Alison Venâncio"""
+
 from miniCVisitor import miniCVisitor
 from typing import List
 
