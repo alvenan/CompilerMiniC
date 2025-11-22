@@ -413,6 +413,70 @@ class TACOptimizer(miniCVisitor):
 
         return final
 
+    def eliminar_rotulos_seguidos(self, codigo):
+        mapa = {}
+        n = len(codigo)
+
+        for i, linha in enumerate(codigo):
+            s = linha.strip()
+            if s.startswith("label "):
+                partes = s.split()
+                if len(partes) >= 2:
+                    nome = partes[1]
+                    j = i + 1
+                    while j < n and codigo[j].strip() == "":
+                        j += 1
+                    if j < n:
+                        s2 = codigo[j].strip()
+                        if s2.startswith("label "):
+                            partes2 = s2.split()
+                            if len(partes2) >= 2:
+                                mapa[nome] = partes2[1]
+
+        for k in list(mapa.keys()):
+            dest = mapa[k]
+            visitados = set()
+            while dest in mapa and dest not in visitados:
+                visitados.add(dest)
+                dest = mapa[dest]
+            mapa[k] = dest
+
+        novo = []
+        for linha in codigo:
+            s = linha.strip()
+            if s.startswith("goto "):
+                partes = s.split()
+                if len(partes) == 2:
+                    dest = partes[1]
+                    while dest in mapa:
+                        dest = mapa[dest]
+                    novo.append(f"goto {dest}")
+                else:
+                    novo.append(linha)
+            elif s.startswith("ifz "):
+                partes = s.split()
+                if len(partes) >= 4 and partes[-2] == "goto":
+                    dest = partes[-1]
+                    while dest in mapa:
+                        dest = mapa[dest]
+                    partes[-1] = dest
+                    novo.append(" ".join(partes))
+                else:
+                    novo.append(linha)
+            else:
+                novo.append(linha)
+
+        final = []
+        for linha in novo:
+            s = linha.strip()
+            if s.startswith("label "):
+                partes = s.split()
+                if len(partes) >= 2 and partes[1] in mapa:
+                    continue
+            final.append(linha)
+
+        return final
+
     def optimize(self, codigo: List[str]) -> List[str]:
         s = [str(l).rstrip("\r") for l in codigo]
         while True:
@@ -422,6 +486,7 @@ class TACOptimizer(miniCVisitor):
                 self.dobrar_constantes,
                 self.simplificar_expressoes,
                 self.eliminar_subexpressoes_comuns_corrigido,
+                self.eliminar_rotulos_seguidos,
                 self.eliminar_codigo_morto,
             ):
                 s = f(s)

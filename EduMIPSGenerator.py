@@ -12,7 +12,7 @@ class EduMIPSGenerator:
     REGS = ["$t0","$t1","$t2","$t3","$t4",
             "$t5","$t6","$t7","$t8","$t9",
             "$s0","$s1","$s2","$s3","$s4",
-            "$s5","$s6","$s7","$s8","$s9"]
+            "$s5","$s6","$s7"]
     OPERADORES = (">=","<=","==","!=",">","<","+","-","*","=")
     KEYWORDS = ("if","goto","func","end",
                 "return","param","call","print",
@@ -42,6 +42,8 @@ class EduMIPSGenerator:
 
             saida.append("")
             saida.append(".text")
+            saida.append("J       main")
+            saida.append("NOP")
             saida.extend(asm)
             saida.append("SYSCALL 0")
             return saida
@@ -223,19 +225,24 @@ class EduMIPSGenerator:
                 continue
 
             if parte.startswith("label "):
-                name = parte.split(None, 1)[1]
+                raw = parte.split(None, 1)[1]
+                name = f"{raw}"
                 out.append(name + ":")
                 continue
 
             # --- goto ---
             if parte.startswith("goto "):
-                out.append(f"J       {parte.split()[1]}")
+                target = parte.split()[1]
+                target = f"{target}"
+                out.append(f"J       {target}")
                 continue
+
 
             # --- ifz VAR goto L ---
             if parte.startswith("ifz ") and "goto" in parte:
                 cond = parte.split("goto",1)[0][4:].strip()
                 label = parte.split("goto",1)[1].strip()
+                label = f"{label}"
                 rv = regs.get(cond)
                 if rv:
                     out.append(f"LD      {rv}, {cond}($zero)")
